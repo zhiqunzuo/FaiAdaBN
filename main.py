@@ -14,6 +14,8 @@ from torch.utils.data import WeightedRandomSampler
 from torchvision import transforms
 from utils import *
 
+from data_split import data_spliting
+
 
 class SPD_Loss(nn.Module):
     def __init__(self) -> None:
@@ -63,8 +65,7 @@ def train(net, criterion, train_loader, valid_loader, optimizer, max_epoch, vali
             epoch_loss_spd = AverageMeter()
             net.train()
             for _, image, label, sensitive_attribute in train_loader:
-                #TODO: remove this annotation when experiment
-                #image, label, sensitive_attribute = image.cuda(), label.cuda(), sensitive_attribute.cuda()
+                image, label, sensitive_attribute = image.cuda(), label.cuda(), sensitive_attribute.cuda()
                 
                 task_0_idx = (sensitive_attribute == 0).nonzero(as_tuple=True)
                 task_1_idx = (sensitive_attribute == 1).nonzero(as_tuple=True)
@@ -113,8 +114,7 @@ def train(net, criterion, train_loader, valid_loader, optimizer, max_epoch, vali
                 epoch_acc = AverageMeter()
                 net.eval()
                 for _, image, label, sensitive_attribute in valid_loader:
-                    #TODO: remove the annotation for experiment
-                    #image, label, sensitive_attribute = image.cuda(), label.cuda(), sensitive_attribute.cuda()
+                    image, label, sensitive_attribute = image.cuda(), label.cuda(), sensitive_attribute.cuda()
                     
                     task_0_idx = (sensitive_attribute == 0).nonzero(as_tuple=True)
                     task_1_idx = (sensitive_attribute == 1).nonzero(as_tuple=True)
@@ -176,30 +176,16 @@ if __name__ == '__main__':
     console.log('baseline model with backbone resnet-152')
     console.log(args)
     
+    #data_spliting(int(args.rand_seed))
+    
     # paths
-    ann_train = pd.read_csv('./dataset/Fitzpatrick-17k/processed/rand_seed={}/split/train.csv'.format(args.rand_seed), index_col=0)
-    ann_valid = pd.read_csv('./dataset/Fitzpatrick-17k/processed/rand_seed={}/split/val.csv'.format(args.rand_seed), index_col=0)
+    ann_train = pd.read_csv('./dataset/csvs/random_seed={}/train.csv'.format(args.rand_seed), index_col=0)
+    ann_valid = pd.read_csv('./dataset/csvs/random_seed={}/val.csv'.format(args.rand_seed), index_col=0)
     ann_train.reset_index(inplace=True)
     ann_valid.reset_index(inplace=True)
     
-    #TODO: remove the part for real experiment
-    ann_train = ann_train[0:100]
-    ann_valid = ann_valid[0:100]
-    
-    train_images = np.zeros((100, 130, 130, 3), dtype=np.uint8)
-    valid_images = np.zeros((100, 130, 130, 3), dtype=np.uint8)
-    
-    #import pickle
-    #with open ('./dataset/Fitzpatrick-17k/processed/rand_seed={}/pkls/train_images.pkl'.format(args.rand_seed), "wb") as f:
-    #    pickle.dump(train_images, f)
-    #with open ('./dataset/Fitzpatrick-17k/processed/rand_seed={}/pkls/valid_images.pkl'.format(args.rand_seed), "wb") as f:
-    #    pickle.dump(valid_images, f)
-    #import sys
-    #sys.exit()
-    
-    train_pkl = './dataset/Fitzpatrick-17k/processed/rand_seed={}/pkls/train_images.pkl'.format(args.rand_seed)
-    valid_pkl = './dataset/Fitzpatrick-17k/processed/rand_seed={}/pkls/val_images.pkl'.format(args.rand_seed)
-
+    train_pkl = './dataset/pkls/random_seed={}/train_images.pkl'.format(args.rand_seed)
+    valid_pkl = './dataset/pkls/random_seed={}/val_images.pkl'.format(args.rand_seed)
 
     # standard transform
     transform = transforms.Compose([
@@ -240,6 +226,7 @@ if __name__ == '__main__':
         
     criterion = nn.CrossEntropyLoss()
     net = resnet152(num_classes=9, select_pos=False)
+    net = net.cuda()
     #load_weights(net)
     #net = net.cuda()
     optimizer = optim.AdamW(net.parameters(), lr=args.lr, betas=(0.9,0.999), weight_decay=1e-4)

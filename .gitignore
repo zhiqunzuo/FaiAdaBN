@@ -160,6 +160,7 @@ cython_debug/
 # data files
 *.csv
 *.pkl
+*.jpg
 
 # mac files
 *.DS_Store
